@@ -1,0 +1,70 @@
+#!/bin/bash -e
+
+deploy() {
+  local environment=\$1
+  local version=\$2
+  local longenviroment=\$1
+  local environmentDisplay=\$1
+
+  # Define the host name of the service only. Kubernetes will automagically register this service with the right Hosted Zone in Route53
+  local dnsRoot="<DNS_ROOT_NAME_CHANGE_ME>"
+  local kubeAppName="<KUBE_APP_NAME_CHANGE_ME>"
+  local dockerRepo="docker-registry.internal.vistaprint.io"
+  local dockerImageName="<DOCKER_IMAGE_NAME_CHANGE_ME>";
+  local fullAppName = "<FULL APP NAME HERE CHANGE ME>"
+
+  local dnsname=\$environment-\$dnsRoot
+  local appName="\$environment-\$kubeAppName"
+  local serviceName="\$kubeAppName-svc-\$environment"
+  local dockerImageName="\$dockerRepodockerImageName:\$version"
+  local containerName="\$environment-\$kubeAppName-container"
+
+  if [ \$environment = 'prod' ]; then
+    dnsname=\$dnsRoot #prod doesn't require prod- prefix
+    longenvironment="production"
+    environmentDisplay="Production"
+  elif [ \$environment = 'test' ]; then
+    longenvironment="test"
+    environmentDisplay="Test"
+  elif [ \$environment = 'dev' ]; then
+    longenvironment="development"
+    environmentDisplay="Development"
+  fi
+
+  local newRelicAppName="\$fullAppName (\$environmentDisplay)"
+
+  local kubeDeploymentFile=deploy/kubernetes/deployment.yaml
+  local kubeServiceFile=deploy/kubernetes/service.yaml
+
+  echo "Deploying \$version to \$environment"
+  escaped_rhs=\$(printf '%s\n' "\$version" | sed 's:[\\/&]:\\&:g;\$!s/\$/\\/')
+
+  # Kubernetes value replacements
+  sed -i.bak "s/\\[appName\\]/\$appName/g" \$kubeDeploymentFile
+  sed -i.bak "s/\\[appName\\]/\$appName/g" \$kubeServiceFile
+
+  sed -i.bak "s/\\[appVersion\\]/\$escaped_rhs/g" \$kubeDeploymentFile
+
+  sed -i.bak "s/\\[serviceName\\]/\$serviceName/g" \$kubeServiceFile
+
+  sed -i.bak "s/\\[environment\\]/\$environment/g" \$kubeDeploymentFile
+  sed -i.bak "s/\\[environment\\]/\$environment/g" \$kubeServiceFile
+
+  sed -i.bak "s/\\[longenvironment\\]/\$longenvironment/g" \$kubeDeploymentFile
+
+  sed -i.bak "s/\\[environmentDisplay\\]/\$environmentDisplay/g" \$kubeDeploymentFile
+
+  sed -i.bak "s/\\[dnsname\\]/\$dnsname/g" \$kubeServiceFile
+
+  sed -i.bak "s/\\[dockerImageName\\]/\$dockerImageName/g" \$kubeDeploymentFile
+
+  sed -i.bak "s/\\[containerName\\]/\$containerName/g" \$kubeDeploymentFile
+
+  sed -i.bak "s/\\[newRelicAppName\\]/\$newRelicAppName/g" \$kubeDeploymentFile
+
+  kubectl apply -f \$kubeDeploymentFile --record
+  kubectl apply -f \$kubeServiceFile
+}
+
+#Call all args
+\$@

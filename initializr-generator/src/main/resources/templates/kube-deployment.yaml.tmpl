@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  generation: 1
+  labels:
+    app: [appName]
+    version: [appVersion]
+  name: [appName]
+  namespace: default
+spec:
+  replicas: 2
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: [appName]
+  template:
+    metadata:
+      labels:
+        app: [appName]
+        version: [appVersion]
+    spec:
+      containers:
+      - env:
+        - name: ALPINE_NO_RESOLVER
+          value: "True"
+        - name: NEW_RELIC_APP_NAME
+          value: "[newRelicAppName]"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "[longenvironment]"
+        image: "[dockerImageName]"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        name: [containerName]
+      imagePullSecrets:
+      - name: internalregistry
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

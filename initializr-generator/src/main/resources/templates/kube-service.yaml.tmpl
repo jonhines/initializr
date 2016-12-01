@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: [appName]
+    dns: route53
+  name: [serviceName]
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+    domainName: "[dnsname]"
+  namespace: default
+spec:
+  ports:
+  - name: api
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: [appName]
+  type: LoadBalancer

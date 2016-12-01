@@ -1,0 +1,29 @@
+Configuration:
+  name: Default
+  status: warn
+
+  Appenders:
+    Console:
+      name: CONSOLE
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n"
+    SumoLogicAppender:
+      name: SUMO
+      url: "<SUMO_ENDPOINT_GOES_HERE>"
+      PatternLayout:
+        Pattern: "%d{DATE} %5p %c{1}:%L - %m%n"
+
+  Loggers:
+    Root:
+      level: warn
+      AppenderRef:
+        - ref: CONSOLE
+        - ref: SUMO
+    Logger:
+      name: com.vistaprint
+      level: debug
+      additivity: false
+      AppenderRef:
+        - ref: CONSOLE
+        - ref: SUMO

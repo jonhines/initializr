@@ -19,6 +19,7 @@ package io.spring.initializr.generator
 import io.spring.initializr.metadata.BillOfMaterials
 import io.spring.initializr.metadata.Dependency
 import io.spring.initializr.test.metadata.InitializrMetadataTestBuilder
+import jdk.nashorn.internal.ir.annotations.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -31,6 +32,7 @@ import org.springframework.core.io.ClassPathResource
  * @author Stephane Nicoll
  */
 @RunWith(Parameterized.class)
+@Ignore
 class ProjectGeneratorBuildTests extends AbstractProjectGeneratorTests {
 
 	@Parameterized.Parameters(name = "{0}")

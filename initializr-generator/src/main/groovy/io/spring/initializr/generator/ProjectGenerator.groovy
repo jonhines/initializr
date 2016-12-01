@@ -150,6 +150,23 @@ class ProjectGenerator {
 		String codeLocation = language
 		def src = new File(new File(dir, "src/main/$codeLocation"), request.packageName.replace('.', '/'))
 		src.mkdirs()
+
+		def controllersDir = new File(src, "controllers");
+		controllersDir.mkdir();
+
+		def servicesDir = new File(src, "services");
+		servicesDir.mkdir();
+
+		def dataDir = new File(src, "data");
+		dataDir.mkdir();
+		def dataEntitiesDir = new File(dataDir, "entities");
+		dataEntitiesDir.mkdir();
+		def dataRepositoryDir = new File(dataDir, "repositories");
+		dataRepositoryDir.mkdir();
+
+		def exceptionsDir = new File(src, "exceptions");
+		exceptionsDir.mkdir();
+
 		def extension = (language.equals('kotlin') ? 'kt' : language)
 		write(new File(src, "${applicationName}.${extension}"), "Application.$extension", model)
 
@@ -171,9 +188,87 @@ class ProjectGenerator {
 			new File(dir, 'src/main/resources/templates').mkdirs()
 			new File(dir, 'src/main/resources/static').mkdirs()
 		}
+
+
+		// START: Custom Vistaprint generations
+
+		// swagger
+		generateSwaggerConfig(src, request)
+
+		// logging and configuration
+		generateLoggingFiles(dir, request);
+		generateEnvironmentPropertyFiles(dir, request)
+		generateSuperImportantBannerFile(dir, request)
+
+		if (isMavenBuild(request))
+		{
+			// rake file to handle build/deploy actions
+			generateRakeFile(dir, request)
+		}
+
+		// deployment files
+		def deployDir = new File(dir, "deploy")
+		deployDir.mkdir()
+		generateDeploymentFiles(deployDir, request)
+		generateNewRelicFile(deployDir, request)
+
+		// END: Custom Vistaprint generations
+
 		publishProjectGeneratedEvent(request)
 		rootDir
 
+	}
+
+	protected void generateRakeFile(File dir, ProjectRequest request) {
+		def model = [:]
+		write(new File(dir, 'rakefile.rb'), 'rakefile.rb', model)
+	}
+
+	protected void generateLoggingFiles(File dir, ProjectRequest request) {
+		def model = [:]
+		write(new File(dir, 'src/main/resources/log4j2.yml'), 'log4j2-base.yml.tmpl', model)
+		write(new File(dir, 'src/main/resources/log4j2-development.yml'), 'log4j2-env.yml.tmpl', model)
+		write(new File(dir, 'src/main/resources/log4j2-local.yml'), 'log4j2-local.yml.tmpl', model)
+		write(new File(dir, 'src/main/resources/log4j2-production.yml'), 'log4j2-env.yml.tmpl', model)
+		write(new File(dir, 'src/main/resources/log4j2-test.yml'), 'log4j2-env.yml.tmpl', model)
+	}
+
+	protected void generateEnvironmentPropertyFiles(File dir, ProjectRequest request) {
+		def model = [:]
+		write(new File(dir, 'src/main/resources/application-local.yml'), 'application-env.properties.tmpl', model)
+		write(new File(dir, 'src/main/resources/application-development.yml'), 'application-env.properties.tmpl', model)
+		write(new File(dir, 'src/main/resources/application-test.yml'), 'application-env.properties.tmpl', model)
+		write(new File(dir, 'src/main/resources/application-production.yml'), 'application-env.properties.tmpl', model)
+	}
+
+	protected void generateSuperImportantBannerFile(File dir, ProjectRequest request) {
+		def model = [:]
+		write(new File(dir, 'src/main/resources/banner.txt'), 'banner.txt.tmpl', model)
+	}
+
+	protected void generateSwaggerConfig(File dir, ProjectRequest request) {
+		def model = [:]
+		model['packageName'] = request.packageName
+		model['applicationName'] = request.applicationName
+
+		write(new File(dir, 'SwaggerConfig.java'), 'SwaggerConfig.groovy.tmpl', model)
+	}
+
+	protected void generateNewRelicFile(File dir, ProjectRequest request) {
+		def model = [:]
+		write(new File(dir, 'newrelic.yml'), 'newrelic.yml.tmpl', model)
+	}
+
+	protected void generateDeploymentFiles(File dir, ProjectRequest request) {
+		def model = [:]
+
+		def kubeDir = new File(dir, "kubernetes");
+		kubeDir.mkdirs()
+
+		write(new File(kubeDir, 'deployment.yaml'), 'kube-deployment.yaml.tmpl', model)
+		write(new File(kubeDir, 'service.yaml'), 'kube-service.yaml.tmpl', model)
+
+		write(new File(dir, 'deployment.sh'), 'deployment.sh.tmpl', model)
 	}
 
 	/**
@@ -261,6 +356,8 @@ class ProjectGenerator {
 		model['compileOnlyDependencies'] = filterDependencies(dependencies, Dependency.SCOPE_COMPILE_ONLY)
 		model['providedDependencies'] = filterDependencies(dependencies, Dependency.SCOPE_PROVIDED)
 		model['testDependencies'] = filterDependencies(dependencies, Dependency.SCOPE_TEST)
+
+		model['vistaprintDependencies'] = getVistaprintDependencies()
 
 		request.boms.each { k, v ->
 			if (v.versionProperty) {
@@ -418,6 +515,54 @@ class ProjectGenerator {
 			temporaryFiles[group] = content
 		}
 		content << file
+	}
+
+	def static List getVistaprintDependencies()
+	{
+		def vistaprintdependencies = []
+
+		// Apache Commons
+		def apacheCommonsLang = [id: "commons-lang3", groupId: "org.apache.commons", artifactId: "commons-lang3", version: "3.4" ]
+		vistaprintdependencies.add(apacheCommonsLang)
+
+		def apacheCommonsList = [id: "org.apache.commons", groupId: "org.apache.commons", artifactId: "commons-collections4", version: "4.1" ]
+		vistaprintdependencies.add(apacheCommonsList)
+
+		// Swagger
+		def springFoxSwagger = [id: "springfox-swagger2", groupId: "io.springfox", artifactId: "springfox-swagger2", version: "2.6.1" ]
+		vistaprintdependencies.add(springFoxSwagger)
+
+		def springFoxSwaggerUi = [id: "springfox-swagger-ui", groupId: "io.springfox", artifactId: "springfox-swagger-ui", version: "2.6.1" ]
+		vistaprintdependencies.add(springFoxSwaggerUi)
+
+		def swagger = [id: "io.swagger", groupId: "io.swagger", artifactId: "swagger-annotations", version: "1.5.10" ]
+		vistaprintdependencies.add(swagger)
+
+		def swaggerWebJars = [id: "org.webjars", groupId: "org.webjars", artifactId: "swagger-ui", version: "2.2.5" ]
+		vistaprintdependencies.add(swaggerWebJars)
+
+		// Logging
+		def log4j2starter = [groupId: "org.springframework.boot", artifactId: "spring-boot-starter-log4j2"]
+		vistaprintdependencies.add(log4j2starter)
+
+		def jacksonCore = [groupId: "com.fasterxml.jackson.core", artifactId: "jackson-databind", version: "2.8.3" ]
+		vistaprintdependencies.add(jacksonCore)
+
+		def jacksonYaml = [groupId: "com.fasterxml.jackson.dataformat", artifactId: "jackson-dataformat-yaml", version: "2.8.3" ]
+		vistaprintdependencies.add(jacksonYaml)
+
+		def sumologic = [groupId: "com.sumologic.plugins.log4j", artifactId: "sumologic-log4j2-appender", version: "1.0" ]
+		vistaprintdependencies.add(sumologic)
+
+		// New Relic
+		def newrelic = [groupId: "com.newrelic.agent.java", artifactId: "newrelic-agent", version: "3.25.0", scope: "provided" ]
+		vistaprintdependencies.add(newrelic)
+
+		// MapStruct
+		def mapstruct = [groupId: "org.mapstruct", artifactId: "mapstruct", version: "1.0.0.Final" ]
+		vistaprintdependencies.add(mapstruct)
+
+		return vistaprintdependencies
 	}
 
 	private static def filterDependencies(def dependencies, String scope) {

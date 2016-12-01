@@ -23,7 +23,18 @@
 		<${it.key}>${it.value()}</${it.key}><%}%>
 	</properties>
 
-	<dependencies><% compileDependencies.each { %>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+	<% compileDependencies.each { %>
 		<dependency>
 			<groupId>${it.groupId}</groupId>
 			<artifactId>${it.artifactId}</artifactId><% if (it.version != null) { %>
@@ -72,7 +83,15 @@
 			<version>${it.version}</version><% } %>
 			<scope>test</scope><% if (it.type != null) { %>
 			<type>${it.type}</type><% } %>
+		</dependency><% } %><% vistaprintDependencies.each { %>
+		<dependency>
+			<groupId>${it.groupId}</groupId>
+			<artifactId>${it.artifactId}</artifactId><% if (it.version != null) { %>
+			<version>${it.version}</version><% } %><% if (it.scope != null) { %>
+			<scope>${it.scope}</scope><% } %>
 		</dependency><% } %>
+
+
 	</dependencies>
 <% if (boms) { %>
 	<dependencyManagement>
@@ -135,6 +154,7 @@
 					</execution>
 				</executions>
 			</plugin><% } %>
+
 		</plugins>
 	</build>
 <% if (repositories) { %>

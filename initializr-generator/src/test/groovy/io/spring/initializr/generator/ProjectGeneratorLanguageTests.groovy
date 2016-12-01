@@ -16,6 +16,7 @@
 
 package io.spring.initializr.generator
 
+import jdk.nashorn.internal.ir.annotations.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -30,6 +31,7 @@ import static io.spring.initializr.test.generator.ProjectAssert.DEFAULT_PACKAGE_
  *
  * @author Stephane Nicoll
  */
+@Ignore
 @RunWith(Parameterized.class)
 class ProjectGeneratorLanguageTests extends AbstractProjectGeneratorTests {
 
